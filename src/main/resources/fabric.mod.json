@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "healthindicators",
+  "version": "${version}",
+  "name": "HealthIndicators",
+  "description": "Render other players' health bars above their heads",
+  "authors": [
+    "ImproperIssues"
+  ],
+  "contact": {
+    "repo": "https://github.com/ItziSpyder/HealthIndicators"
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/healthindicators/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "io.github.itzispyder.healthindicators.client.HealthIndicatorsClient"
+    ],
+    "main": [
+      "io.github.itzispyder.healthindicators.HealthIndicators"
+    ]
+  },
+  "mixins": [
+    "healthindicators.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

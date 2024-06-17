@@ -1,0 +1,103 @@
+
+div #background {
+    size: 100%
+    background-color: black
+    opacity: 0.25
+}
+
+div #main {
+    size: 150 200
+    background-color: black
+    opacity: 0.5
+    border-radius: 5
+    shadow-distance: 5
+
+    center: both
+
+    div #title {
+        size: 100% 10
+        inner-text: "Health Indicator"
+        text-scale: 1.2
+        text-shadow: true
+        text-color: #ffff5050
+        text-align: center
+        background-color: #00000000
+        margin-top: 7
+    }
+
+    div #config {
+        size: 80% 90%
+        margin-top: 10%
+        child-align: grid
+        grid-columns: 2
+        opacity: 0
+        margin: 10%
+        margin-top: 12%
+
+        checkbox -healthindicators:config.properties:enabled { margin: 3; }
+        div { inner-text: "Enabled"; height: 10; margin: 3; }
+
+        checkbox -healthindicators:config.properties:no-npc { margin: 3; }
+        div { inner-text: "No NPCs"; height: 10; margin: 3; }
+
+        checkbox -healthindicators:config.properties:show-own { margin: 3; }
+        div { inner-text: "Show Own"; height: 10; margin: 3; }
+
+        div {}
+        div {
+            margin-top: 10
+        }
+
+        div { inner-text: "Offset Y"; }
+        slider -healthindicators:config.properties:offset-y {
+            min: -100
+            max: 100
+            val: 0
+            width: 75%
+            decimal-places: 0
+        }
+
+        div { inner-text: "Scale"; }
+        slider -healthindicators:config.properties:scale {
+            min: 0.5
+            max: 2.0
+            val: 1.0
+            width: 75%
+        }
+
+
+        div {}
+        div {
+            margin-top: 20
+        }
+
+
+        div {
+            inner-text: "Like this UI?"
+            height: 10
+            margin-top: 20
+            text-scale: 0.7
+        }
+        div {
+            inner-text: "Check out my new rendering library!"
+            height: 10
+            margin-top: 30
+            text-scale: 0.7
+        }
+        button #improperui-ad {
+            inner-text: "ImproperUI"
+            margin-top: 5
+            center: horizontal
+            text-color: white
+            background-color: #ffff5050
+            on-click: handleMouseCallbacks
+
+            hover => {
+                padding: 3
+                shadow-distance: 3
+                shadow-color: #ffff5050
+                border-thickness: 0
+            }
+        }
+    }
+}
