@@ -16,10 +16,10 @@ import static io.github.itzispyder.healthindicators.Global.screens;
 public class HealthIndicators implements ModInitializer {
 
     public static final KeyBinding BIND = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "binds.autoclicker.menu",
+            "binds.healthindicators.menu",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_MINUS,
-            "binds.autoclicker"
+            "binds.healthindicators"
     ));
 
     @Override
