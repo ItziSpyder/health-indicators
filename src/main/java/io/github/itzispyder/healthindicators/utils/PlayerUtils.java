@@ -26,7 +26,7 @@ public final class PlayerUtils implements Global {
 
         ClientPlayerEntity p = mc.player;
         GameProfile profile = player.getGameProfile();
-        PlayerListEntry entry = p.networkHandler.getPlayerListEntry(profile.getId());
+        PlayerListEntry entry = p.networkHandler.getPlayerListEntry(profile.id());
 
         return entry != null;
     }
