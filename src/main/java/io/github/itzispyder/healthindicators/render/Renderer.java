@@ -1,22 +1,18 @@
 package io.github.itzispyder.healthindicators.render;
 
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.*;
 import io.github.itzispyder.healthindicators.Global;
 import io.github.itzispyder.healthindicators.client.Config;
 import io.github.itzispyder.healthindicators.utils.HeartType;
 import io.github.itzispyder.healthindicators.utils.PlayerHealthData;
 import io.github.itzispyder.healthindicators.utils.PlayerUtils;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
@@ -30,7 +26,7 @@ public class Renderer implements Global {
     private static final Map<UUID, PlayerHealthData> dataMap = new HashMap<>();
     private static final Random random = new Random();
 
-    public static void render(MatrixStack matrices, PlayerEntity player, Quaternionf rotation) {
+    public static void render(PoseStack matrices, Player player, Quaternionf rotation) {
         if (Config.noNPC && !PlayerUtils.playerValid(player))
             return;
 
@@ -40,30 +36,30 @@ public class Renderer implements Global {
         float x = -width / 2;
         float y = -20 - Config.offsetY;
 
-        matrices.push();
+        matrices.pushPose();
         matrices.translate(0, height, 0);
-        matrices.multiply(rotation);
+        matrices.mulPose(rotation);
         matrices.scale(scale, -scale, scale);
 
         renderStatusBars(matrices, player, x, y);
 
-        matrices.pop();
+        matrices.popPose();
     }
 
-    private static void renderStatusBars(MatrixStack matrices, PlayerEntity player, float x, float y) {
-        int ticks = mc.inGameHud.getTicks();
+    private static void renderStatusBars(PoseStack matrices, Player player, float x, float y) {
+        int ticks = mc.gui.getGuiTicks();
         UUID id = player.getGameProfile().id();
         PlayerHealthData data = dataMap.computeIfAbsent(id, uuid -> new PlayerHealthData());
 
-        int lastHealth = MathHelper.ceil(player.getHealth());
+        int lastHealth = Mth.ceil(player.getHealth());
         boolean blinking = data.heartJumpEndTick > (long)ticks && (data.heartJumpEndTick - (long)ticks) / 3L % 2L == 1L;
-        long l = Util.getMeasuringTimeMs();
+        long l = Util.getMillis();
 
-        if (lastHealth < data.lastHealthValue && player.timeUntilRegen > 0) {
+        if (lastHealth < data.lastHealthValue && player.invulnerableTime > 0) {
             data.lastHealthCheckTime = l;
             data.heartJumpEndTick = ticks + 20;
         }
-        else if (lastHealth > data.lastHealthValue && player.timeUntilRegen > 0) {
+        else if (lastHealth > data.lastHealthValue && player.invulnerableTime > 0) {
             data.lastHealthCheckTime = l;
             data.heartJumpEndTick = ticks + 10;
         }
@@ -75,23 +71,23 @@ public class Renderer implements Global {
 
         data.lastHealthValue = lastHealth;
         int health = data.renderHealthValue;
-        float maxHealth = Math.max((float)player.getAttributeValue(EntityAttributes.MAX_HEALTH), (float)Math.max(health, lastHealth));
-        int absorption = MathHelper.ceil(player.getAbsorptionAmount());
-        int lines = Math.max(10 - (MathHelper.ceil((maxHealth + (float)absorption) / 2.0F / 10.0F) - 2), 3);
+        float maxHealth = Math.max((float)player.getAttributeValue(Attributes.MAX_HEALTH), (float)Math.max(health, lastHealth));
+        int absorption = Mth.ceil(player.getAbsorptionAmount());
+        int lines = Math.max(10 - (Mth.ceil((maxHealth + (float)absorption) / 2.0F / 10.0F) - 2), 3);
         int regeneratingHeartIndex = -1;
 
-        if (player.hasStatusEffect(StatusEffects.REGENERATION)) {
-            regeneratingHeartIndex = ticks % MathHelper.ceil(maxHealth + 5.0F);
+        if (player.hasEffect(MobEffects.REGENERATION)) {
+            regeneratingHeartIndex = ticks % Mth.ceil(maxHealth + 5.0F);
         }
 
         renderHealthBar(matrices, player, x, y, lines, regeneratingHeartIndex, maxHealth, lastHealth, health, absorption, blinking);
     }
 
-    private static void renderHealthBar(MatrixStack matrices, PlayerEntity player, float x, float y, int lines, int regeneratingHeartIndex, float maxHealth, int lastHealth, int health, int absorption, boolean blinking) {
+    private static void renderHealthBar(PoseStack matrices, Player player, float x, float y, int lines, int regeneratingHeartIndex, float maxHealth, int lastHealth, int health, int absorption, boolean blinking) {
         HeartType heartType = HeartType.fromPlayerState(player);
-        boolean hardcore = player.getEntityWorld().getLevelProperties().isHardcore();
-        int maxHearts = MathHelper.ceil((double)maxHealth / 2.0);
-        int absorptionHearts = MathHelper.ceil((double)absorption / 2.0);
+        boolean hardcore = player.level().getLevelData().isHardcore();
+        int maxHearts = Mth.ceil((double)maxHealth / 2.0);
+        int absorptionHearts = Mth.ceil((double)absorption / 2.0);
         int maxHpPoints = maxHearts * 2;
 
         for (int i = maxHearts + absorptionHearts - 1; i >= 0; --i) {
@@ -122,25 +118,25 @@ public class Renderer implements Global {
         }
     }
 
-    private static void drawHeart(MatrixStack matrices, HeartType type, float x, float y, boolean hardcore, boolean blinking, boolean half) {
-        Tessellator tes = Tessellator.getInstance();
-        BufferBuilder buf = tes.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
-        Matrix4f mat = matrices.peek().getPositionMatrix();
+    private static void drawHeart(PoseStack matrices, HeartType type, float x, float y, boolean hardcore, boolean blinking, boolean half) {
+        Tesselator tes = Tesselator.getInstance();
+        BufferBuilder buf = tes.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        Matrix4f mat = matrices.last().pose();
         float s = 9;
 
-        buf.vertex(mat, x, y, 0).color(0xFFFFFFFF).texture(0, 0);
-        buf.vertex(mat, x, y + s, 0).color(0xFFFFFFFF).texture(0, 1);
-        buf.vertex(mat, x + s, y + s, 0).color(0xFFFFFFFF).texture(1, 1);
-        buf.vertex(mat, x + s, y, 0).color(0xFFFFFFFF).texture(1, 0);
+        buf.addVertex(mat, x, y, 0).setColor(0xFFFFFFFF).setUv(0, 0);
+        buf.addVertex(mat, x, y + s, 0).setColor(0xFFFFFFFF).setUv(0, 1);
+        buf.addVertex(mat, x + s, y + s, 0).setColor(0xFFFFFFFF).setUv(1, 1);
+        buf.addVertex(mat, x + s, y, 0).setColor(0xFFFFFFFF).setUv(1, 0);
 
-        RenderLayers.TEX_QUADS.apply(type.getTexture(hardcore, half, blinking)).draw(buf.end());
+        RenderLayers.TEX_QUADS.apply(type.getTexture(hardcore, half, blinking)).draw(buf.buildOrThrow());
     }
 
-    public static AbstractClientPlayerEntity findMatchingPlayer(PlayerEntityRenderState state) {
-        if (state == null || mc.world == null)
+    public static AbstractClientPlayer findMatchingPlayer(AvatarRenderState state) {
+        if (state == null || mc.level == null)
             return null;
 
-        for (AbstractClientPlayerEntity player: mc.world.getPlayers())
+        for (AbstractClientPlayer player: mc.level.players())
             if (player.getId() == state.id)
                 return player;
         return null;

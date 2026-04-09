@@ -2,42 +2,42 @@ package io.github.itzispyder.healthindicators.utils;
 
 import com.mojang.authlib.GameProfile;
 import io.github.itzispyder.healthindicators.Global;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityAttachmentType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityAttachment;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 public final class PlayerUtils implements Global {
 
     public static boolean invalid() {
-        return mc == null || mc.player == null || mc.world == null || mc.interactionManager == null || mc.options == null;
+        return mc == null || mc.player == null || mc.level == null || mc.gameMode == null || mc.options == null;
     }
 
     public static boolean valid() {
         return !invalid();
     }
 
-    public static boolean playerValid(PlayerEntity player) {
+    public static boolean playerValid(Player player) {
         if (invalid() || player == null) {
             return false;
         }
 
-        ClientPlayerEntity p = mc.player;
+        LocalPlayer p = mc.player;
         GameProfile profile = player.getGameProfile();
-        PlayerListEntry entry = p.networkHandler.getPlayerListEntry(profile.id());
+        PlayerInfo entry = p.connection.getPlayerInfo(profile.id());
 
         return entry != null;
     }
 
-    public static ClientPlayerEntity player() {
+    public static LocalPlayer player() {
         return mc.player;
     }
 
     public static float getEntityNameLabelHeight(Entity entity, float tickDelta) {
-        float yaw = entity.getYaw(tickDelta);
-        Vec3d vec = entity.getAttachments().getPointNullable(EntityAttachmentType.NAME_TAG, 0, yaw);
+        float yaw = entity.getViewYRot(tickDelta);
+        Vec3 vec = entity.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0, yaw);
         return (float)(vec == null ? 0.5 : vec.y + 0.5);
     }
 }

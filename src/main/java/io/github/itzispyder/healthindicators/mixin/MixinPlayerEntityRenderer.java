@@ -1,29 +1,32 @@
 package io.github.itzispyder.healthindicators.mixin;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.itzispyder.healthindicators.Global;
 import io.github.itzispyder.healthindicators.client.Config;
 import io.github.itzispyder.healthindicators.render.Renderer;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.command.OrderedRenderCommandQueue;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
-import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(PlayerEntityRenderer.class)
+@Mixin(AvatarRenderer.class)
 public abstract class MixinPlayerEntityRenderer implements Global {
 
-    @Inject(method = "renderLabelIfPresent(Lnet/minecraft/client/render/entity/state/PlayerEntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;Lnet/minecraft/client/render/state/CameraRenderState;)V", at = @At("TAIL"))
-    public void renderLabelIfPresent(PlayerEntityRenderState playerEntityRenderState, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, CameraRenderState cameraRenderState, CallbackInfo ci) {
+    @Shadow protected abstract boolean shouldShowName(Entity par1, double par2);
+
+    @Inject(method = "submitNameDisplay(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V", at = @At("TAIL"))
+    public void renderLabelIfPresent(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, net.minecraft.client.renderer.state.level.CameraRenderState camera, CallbackInfo ci) {
         if (!Config.enabled)
             return;
 
-        AbstractClientPlayerEntity player = Renderer.findMatchingPlayer(playerEntityRenderState);
-        if (player != null)
-            Renderer.render(matrices, player, cameraRenderState.orientation);
+        AbstractClientPlayer player = Renderer.findMatchingPlayer(state);
+        if (player != null && shouldShowName(player, state.distanceToCameraSq))
+            Renderer.render(poseStack, player, camera.orientation);
     }
 }

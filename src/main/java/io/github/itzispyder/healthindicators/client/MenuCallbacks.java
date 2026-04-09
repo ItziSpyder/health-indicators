@@ -17,7 +17,7 @@ public class MenuCallbacks implements CallbackListener {
 
     public void onClick(MouseEvent e) {
         if ("improperui-ad".equals(e.target.getId())) {
-            Util.getOperatingSystem().open("https://github.com/itzispyder/improperui");
+            Util.getPlatform().openUri("https://github.com/itzispyder/improperui");
         }
     }
 
