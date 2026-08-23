@@ -27,6 +27,6 @@ public abstract class MixinPlayerEntityRenderer implements Global {
 
         AbstractClientPlayer player = Renderer.findMatchingPlayer(state);
         if (player != null && shouldShowName(player, state.distanceToCameraSq))
-            Renderer.render(poseStack, player, camera.orientation);
+            Renderer.render(submitNodeCollector, poseStack, player, camera.orientation);
     }
 }

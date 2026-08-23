@@ -1,13 +1,15 @@
 package io.github.itzispyder.healthindicators.render;
 
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.itzispyder.healthindicators.Global;
 import io.github.itzispyder.healthindicators.client.Config;
 import io.github.itzispyder.healthindicators.utils.HeartType;
 import io.github.itzispyder.healthindicators.utils.PlayerHealthData;
 import io.github.itzispyder.healthindicators.utils.PlayerUtils;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 import net.minecraft.world.effect.MobEffects;
@@ -26,7 +28,7 @@ public class Renderer implements Global {
     private static final Map<UUID, PlayerHealthData> dataMap = new HashMap<>();
     private static final Random random = new Random();
 
-    public static void render(PoseStack matrices, Player player, Quaternionf rotation) {
+    public static void render(SubmitNodeCollector submit, PoseStack matrices, Player player, Quaternionf rotation) {
         if (Config.noNPC && !PlayerUtils.playerValid(player))
             return;
 
@@ -41,13 +43,13 @@ public class Renderer implements Global {
         matrices.mulPose(rotation);
         matrices.scale(scale, -scale, scale);
 
-        renderStatusBars(matrices, player, x, y);
+        renderStatusBars(submit, matrices, player, x, y);
 
         matrices.popPose();
     }
 
-    private static void renderStatusBars(PoseStack matrices, Player player, float x, float y) {
-        int ticks = mc.gui.getGuiTicks();
+    private static void renderStatusBars(SubmitNodeCollector submit, PoseStack matrices, Player player, float x, float y) {
+        int ticks = mc.gui.hud.getGuiTicks();
         UUID id = player.getGameProfile().id();
         PlayerHealthData data = dataMap.computeIfAbsent(id, uuid -> new PlayerHealthData());
 
@@ -80,10 +82,10 @@ public class Renderer implements Global {
             regeneratingHeartIndex = ticks % Mth.ceil(maxHealth + 5.0F);
         }
 
-        renderHealthBar(matrices, player, x, y, lines, regeneratingHeartIndex, maxHealth, lastHealth, health, absorption, blinking);
+        renderHealthBar(submit, matrices, player, x, y, lines, regeneratingHeartIndex, maxHealth, lastHealth, health, absorption, blinking);
     }
 
-    private static void renderHealthBar(PoseStack matrices, Player player, float x, float y, int lines, int regeneratingHeartIndex, float maxHealth, int lastHealth, int health, int absorption, boolean blinking) {
+    private static void renderHealthBar(SubmitNodeCollector submit, PoseStack matrices, Player player, float x, float y, int lines, int regeneratingHeartIndex, float maxHealth, int lastHealth, int health, int absorption, boolean blinking) {
         HeartType heartType = HeartType.fromPlayerState(player);
         boolean hardcore = player.level().getLevelData().isHardcore();
         int maxHearts = Mth.ceil((double)maxHealth / 2.0);
@@ -100,36 +102,35 @@ public class Renderer implements Global {
             if (i < maxHearts && i == regeneratingHeartIndex)
                 renderY -= 2;
 
-            drawHeart(matrices, HeartType.CONTAINER, renderX, renderY, hardcore, blinking, false);
+            drawHeart(submit, matrices, HeartType.CONTAINER, renderX, renderY, hardcore, blinking, false);
 
             if (i >= maxHearts) {
                 int diff = asHealthPoints - maxHpPoints;
                 if (diff < absorption) {
                     boolean half = diff + 1 == absorption;
-                    drawHeart(matrices, heartType == HeartType.WITHERED ? heartType : HeartType.ABSORBING, renderX, renderY, hardcore, false, half);
+                    drawHeart(submit, matrices, heartType == HeartType.WITHERED ? heartType : HeartType.ABSORBING, renderX, renderY, hardcore, false, half);
                 }
             }
 
             if (blinking && asHealthPoints < health)
-                drawHeart(matrices, heartType, renderX, renderY, hardcore, true, asHealthPoints + 1 == health);
+                drawHeart(submit, matrices, heartType, renderX, renderY, hardcore, true, asHealthPoints + 1 == health);
 
             if (asHealthPoints < lastHealth)
-                drawHeart(matrices, heartType, renderX, renderY, hardcore, false, asHealthPoints + 1 == lastHealth);
+                drawHeart(submit, matrices, heartType, renderX, renderY, hardcore, false, asHealthPoints + 1 == lastHealth);
         }
     }
 
-    private static void drawHeart(PoseStack matrices, HeartType type, float x, float y, boolean hardcore, boolean blinking, boolean half) {
-        Tesselator tes = Tesselator.getInstance();
-        BufferBuilder buf = tes.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        Matrix4f mat = matrices.last().pose();
-        float s = 9;
+    private static void drawHeart(SubmitNodeCollector submit, PoseStack matrices, HeartType type, float x, float y, boolean hardcore, boolean blinking, boolean half) {
+        Identifier tex = type.getTexture(hardcore, half, blinking);
+        submit.submitCustomGeometry(matrices, RenderLayers.TEX_QUADS.apply(tex), (pose, buffer) -> {
+            Matrix4f mat = matrices.last().pose();
+            float s = 9;
 
-        buf.addVertex(mat, x, y, 0).setColor(0xFFFFFFFF).setUv(0, 0);
-        buf.addVertex(mat, x, y + s, 0).setColor(0xFFFFFFFF).setUv(0, 1);
-        buf.addVertex(mat, x + s, y + s, 0).setColor(0xFFFFFFFF).setUv(1, 1);
-        buf.addVertex(mat, x + s, y, 0).setColor(0xFFFFFFFF).setUv(1, 0);
-
-        RenderLayers.TEX_QUADS.apply(type.getTexture(hardcore, half, blinking)).draw(buf.buildOrThrow());
+            buffer.addVertex(mat, x, y, 0).setColor(0xFFFFFFFF).setUv(0, 0);
+            buffer.addVertex(mat, x, y + s, 0).setColor(0xFFFFFFFF).setUv(0, 1);
+            buffer.addVertex(mat, x + s, y + s, 0).setColor(0xFFFFFFFF).setUv(1, 1);
+            buffer.addVertex(mat, x + s, y, 0).setColor(0xFFFFFFFF).setUv(1, 0);
+        });
     }
 
     public static AbstractClientPlayer findMatchingPlayer(AvatarRenderState state) {
