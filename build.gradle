@@ -28,7 +28,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
 //    compileOnly files("libs/ImproperUI-${project.minecraft_version}-${project.improperui_version}.jar")
-    compileOnly files("libs/ImproperUI-26.1-${project.improperui_version}.jar")
+    compileOnly files("libs/ImproperUI-${project.minecraft_version}-${project.improperui_version}.jar")
 }
 
 processResources {
